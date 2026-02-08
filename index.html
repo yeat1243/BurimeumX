@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Proxy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .search-bar {
+            flex: 1;
+            max-width: 500px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-bar input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .search-bar input:focus {
+            border-color: #667eea;
+        }
+
+        .search-bar button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .search-bar button:hover {
+            background: #764ba2;
+        }
+
+        .tabs {
+            background: white;
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            padding: 0 20px;
+        }
+
+        .tab {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            color: #666;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            color: #667eea;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .tab-content {
+            display: none;
+            flex: 1;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .proxy-frame {
+            flex: 1;
+            border: none;
+            border-radius: 8px;
+        }
+
+        .history-list {
+            list-style: none;
+        }
+
+        .history-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .history-item:hover {
+            background: #e8e8e8;
+        }
+
+        .history-item-url {
+            font-weight: 500;
+            color: #667eea;
+        }
+
+        .history-item-time {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .settings-group {
+            margin-bottom: 20px;
+        }
+
+        .settings-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .settings-group input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .settings-group input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #764ba2;
+        }
+
+        .btn-secondary {
+            background: #ddd;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #ccc;
+        }
+
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🔗 ProxyWeb</div>
+        <div class="search-bar">
+            <input type="text" id="urlInput" placeholder="Enter URL (e.g., google.com)" />
+            <button onclick="loadProxy()">Go</button>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab(0)">🌐 Browse</div>
+        <div class="tab" onclick="switchTab(1)">📜 History</div>
+        <div class="tab" onclick="switchTab(2)">⚙️ Settings</div>
+        <div class="tab" onclick="switchTab(3)">ℹ️ About</div>
+    </div>
+
+    <div class="content">
+        <!-- Browse Tab -->
+        <div class="tab-content active">
+            <iframe id="proxyFrame" class="proxy-frame"></iframe>
+        </div>
+
+        <!-- History Tab -->
+        <div class="tab-content">
+            <h2 style="margin-bottom: 15px;">Browse History</h2>
+            <ul class="history-list" id="historyList">
+                <li class="empty-state">No history yet</li>
+            </ul>
+        </div>
+
+        <!-- Settings Tab -->
+        <div class="tab-content">
+            <h2 style="margin-bottom: 20px;">Settings</h2>
+            <div class="settings-group">
+                <label>
+                    <input type="checkbox" id="blockAds" checked /> Block Ads
+                </label>
+            </div>
+            <div class="settings-group">
+                <label>
+                    <input type="checkbox" id="darkMode" /> Dark Mode
+                </label>
+            </div>
+            <div class="settings-group">
+                <label for="userAgent">Custom User Agent:</label>
+                <input type="text" id="userAgent" placeholder="Leave empty for default" />
+            </div>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+                <button class="btn btn-secondary" onclick="clearHistory()">Clear History</button>
+            </div>
+        </div>
+
+        <!-- About Tab -->
+        <div class="tab-content">
+            <h2 style="margin-bottom: 20px;">About ProxyWeb</h2>
+            <p style="line-height: 1.6; color: #666;">
+                <strong>ProxyWeb v1.0</strong><br><br>
+                A simple web proxy service that allows you to browse websites through this application.<br><br>
+                <strong>Features:</strong>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>Browse any website securely</li>
+                    <li>Browse history tracking</li>
+                    <li>Customizable settings</li>
+                    <li>Clean, modern interface</li>
+                </ul>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        let history = JSON.parse(localStorage.getItem('proxyHistory')) || [];
+
+        function switchTab(index) {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+            
+            tabs[index].classList.add('active');
+            contents[index].classList.add('active');
+
+            if (index === 1) {
+                updateHistoryDisplay();
+            }
+        }
+
+        function loadProxy() {
+            let url = document.getElementById('urlInput').value.trim();
+            
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+            }
+
+            const iframe = document.getElementById('proxyFrame');
+            iframe.src = `/proxy?url=${encodeURIComponent(url)}`;
+
+            // Add to history
+            addToHistory(url);
+        }
+
+        function addToHistory(url) {
+            const now = new Date();
+            const entry = {
+                url: url,
+                title: new URL(url).hostname,
+                timestamp: now.toLocaleString()
+            };
+
+            history.unshift(entry);
+            if (history.length > 50) {
+                history.pop();
+            }
+
+            localStorage.setItem('proxyHistory', JSON.stringify(history));
+        }
+
+        function updateHistoryDisplay() {
+            const historyList = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<li class="empty-state">No history yet</li>';
+                return;
+            }
+
+            historyList.innerHTML = history.map((entry, index) => `
+                <li class="history-item" onclick="loadFromHistory(${index})">
+                    <div class="history-item-url">${entry.title}</div>
+                    <div class="history-item-time">${entry.timestamp}</div>
+                </li>
+            `).join('');
+        }
+
+        function loadFromHistory(index) {
+            document.getElementById('urlInput').value = history[index].url;
+            loadProxy();
+            switchTab(0);
+        }
+
+        function clearHistory() {
+            if (confirm('Are you sure you want to clear all history?')) {
+                history = [];
+                localStorage.setItem('proxyHistory', JSON.stringify(history));
+                updateHistoryDisplay();
+            }
+        }
+
+        function saveSettings() {
+            const settings = {
+                blockAds: document.getElementById('blockAds').checked,
+                darkMode: document.getElementById('darkMode').checked,
+                userAgent: document.getElementById('userAgent').value
+            };
+
+            localStorage.setItem('proxySettings', JSON.stringify(settings));
+            alert('Settings saved!');
+        }
+
+        // Allow Enter key to load proxy
+        document.getElementById('urlInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loadProxy();
+            }
+        });
+
+        // Load settings on startup
+        const saved = localStorage.getItem('proxySettings');
+        if (saved) {
+            const settings = JSON.parse(saved);
+            document.getElementById('blockAds').checked = settings.blockAds;
+            document.getElementById('darkMode').checked = settings.darkMode;
+            document.getElementById('userAgent').value = settings.userAgent;
+        }
+    </script>
+</body>
+</html>
